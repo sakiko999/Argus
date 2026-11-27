@@ -10,6 +10,11 @@ on:
         required: true
         default: "0.6.0.1"
         type: string
+      from_run_id:
+        description: Optional existing workflow run ID to publish artifacts from without rebuilding
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write
@@ -24,6 +29,7 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.arch }})
+    if: ${{ inputs.from_run_id == '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -76,6 +82,7 @@ jobs:
   publish:
     name: Publish GitHub Release
     needs: build
+    if: ${{ always() && (inputs.from_run_id != '' || needs.build.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -85,20 +92,21 @@ jobs:
       - name: Download artifacts and compute SHA256SUMS.txt
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.from_run_id || github.run_id }}
         run: |
           mkdir -p assets
-          gh run download "$GITHUB_RUN_ID" -n fork-release-x64 -D assets
-          gh run download "$GITHUB_RUN_ID" -n fork-release-arm64 -D assets
+          gh run download "$SOURCE_RUN_ID" -R "$GITHUB_REPOSITORY" -n fork-release-x64 -D assets
+          gh run download "$SOURCE_RUN_ID" -R "$GITHUB_REPOSITORY" -n fork-release-arm64 -D assets
           (cd assets && sha256sum -- *.exe > SHA256SUMS.txt && cat SHA256SUMS.txt)
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v${{ inputs.version }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" assets/* --clobber
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" -R "$GITHUB_REPOSITORY" assets/* --clobber
           else
-            gh release create "$TAG" assets/* \
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" assets/* \
               --target "$GITHUB_SHA" \
               --title "Argus $TAG (memory-cleanup fork)" \
               --notes "Personal fork build of Argus with manual and automatic system memory cleanup (Issue #187)."
