@@ -40,7 +40,8 @@
     "show": "Показать Argus",
     "quit": "Выход",
     "update": "Обновление до {version}…",
-    "tooltip": "CPU {cpu} % Память {memory} %"
+    "tooltip": "CPU {cpu} % Память {memory} %",
+    "cleanMemory": "Очистить память"
   },
   "startup": {
     "managed": "Приложение не разрешает вручную изменять этот элемент автозагрузки.",

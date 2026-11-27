@@ -38,7 +38,8 @@
     "show": "Show Argus",
     "quit": "Exit",
     "update": "Update to {version}…",
-    "tooltip": "CPU {cpu}%  Memory {memory}%"
+    "tooltip": "CPU {cpu}%  Memory {memory}%",
+    "cleanMemory": "Clean memory"
   },
   "startup": {
     "managed": "This app does not allow manual changes to this startup task.",

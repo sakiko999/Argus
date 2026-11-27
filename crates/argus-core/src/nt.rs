@@ -27,11 +27,17 @@ unsafe extern "system" {
         information: *const core::ffi::c_void,
         length: u32,
     ) -> NTSTATUS;
+    pub fn NtSetSystemInformation(
+        class: SYSTEM_INFORMATION_CLASS,
+        information: *const core::ffi::c_void,
+        length: u32,
+    ) -> NTSTATUS;
 }
 
 pub const STATUS_INFO_LENGTH_MISMATCH: i32 = 0xC000_0004_u32 as i32;
 pub const STATUS_BUFFER_TOO_SMALL: i32 = 0xC000_0023_u32 as i32;
 pub const STATUS_BUFFER_OVERFLOW: i32 = 0x8000_0005_u32 as i32;
+pub const STATUS_PRIVILEGE_NOT_HELD: i32 = 0xC000_0061_u32 as i32;
 
 pub const SYSTEM_PROCESS_ID_INFORMATION: SYSTEM_INFORMATION_CLASS = SYSTEM_INFORMATION_CLASS(88);
 pub const SYSTEM_BASIC_PROCESS_INFORMATION: SYSTEM_INFORMATION_CLASS =
@@ -39,6 +45,30 @@ pub const SYSTEM_BASIC_PROCESS_INFORMATION: SYSTEM_INFORMATION_CLASS =
 pub const SYSTEM_EXTENDED_HANDLE_INFORMATION: SYSTEM_INFORMATION_CLASS =
     SYSTEM_INFORMATION_CLASS(64);
 pub const SYSTEM_MEMORY_LIST_INFORMATION: SYSTEM_INFORMATION_CLASS = SYSTEM_INFORMATION_CLASS(80);
+pub const SYSTEM_FILE_CACHE_INFORMATION_EX: SYSTEM_INFORMATION_CLASS = SYSTEM_INFORMATION_CLASS(81);
+
+/// `SYSTEM_MEMORY_LIST_COMMAND` values passed to `NtSetSystemInformation`.
+pub const MEMORY_EMPTY_WORKING_SETS: u32 = 2;
+pub const MEMORY_FLUSH_MODIFIED_LIST: u32 = 3;
+pub const MEMORY_PURGE_STANDBY_LIST: u32 = 4;
+
+/// `SYSTEM_FILECACHE_INFORMATION` layout for `SystemFileCacheInformationEx` (class 81).
+#[repr(C)]
+#[derive(Default)]
+pub struct SystemFileCacheInformationEx {
+    pub current_size: usize,
+    pub peak_size: usize,
+    pub page_fault_count: u32,
+    pub minimum_working_set: usize,
+    pub maximum_working_set: usize,
+    pub current_size_including_transition_in_pages: usize,
+    pub peak_size_including_transition_in_pages: usize,
+    pub transition_repurpose_count: u32,
+    pub flags: u32,
+}
+
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::size_of::<SystemFileCacheInformationEx>() == 64);
 
 #[repr(C)]
 #[derive(Default)]

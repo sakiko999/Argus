@@ -1484,8 +1484,10 @@ fn tray_menu(app: &Host, hwnd: HWND) {
             return;
         };
         let show = wide(&tr!("tray.show"));
+        let clean = wide(&tr!("tray.cleanMemory"));
         let quit = wide(&tr!("tray.quit"));
         let _ = AppendMenuW(menu, MF_STRING, 1, PCWSTR(show.as_ptr()));
+        let _ = AppendMenuW(menu, MF_STRING, 4, PCWSTR(clean.as_ptr()));
         if let Some(version) = UPDATE.lock().unwrap().as_deref() {
             let text = wide(&tr!("tray.update", version = version));
             let _ = AppendMenuW(menu, MF_STRING, 2, PCWSTR(text.as_ptr()));
@@ -1513,6 +1515,10 @@ fn tray_menu(app: &Host, hwnd: HWND) {
                 let _ = app.emit("argus-show-update", ());
             }
             3 => app.exit(0),
+            4 => {
+                show_main(app);
+                let _ = app.emit("argus-clean-memory", ());
+            }
             _ => {}
         }
     }

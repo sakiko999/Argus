@@ -295,7 +295,19 @@
     "formFactor": "外形规格",
     "onboard": "板载",
     "type": "类型",
-    "reserved": "为硬件保留"
+    "reserved": "为硬件保留",
+    "clean": "清理内存",
+    "cleaning": "清理中…",
+    "cleanupRequiresService": "需要安装特权服务",
+    "cleanupNoScope": "未勾选任何内存清理范围，请先在设置中选择。",
+    "cleanConfirmTitle": "清理系统内存",
+    "cleanConfirmBody": "将按当前设置清理以下内存项：{items}。\n\n清理工作集或缓存可能带来短暂缺页或磁盘读取回潮，是否继续？",
+    "cleanDone": "已清理内存：可用 {before} → {after}（释放 {freed}）",
+    "cleanPartial": "已完成部分内存清理：可用 {before} → {after}（释放 {freed}）；未执行：{failed}",
+    "cleanPrivilegeMissing": "权限不足（缺少 SeProfileSingleProcessPrivilege），已跳过后续清理项。请安装或更新特权服务。",
+    "cleanTimedOut": "内存清理超时，部分操作可能仍在后台完成。",
+    "cleanServiceOutdated": "特权服务版本过旧，不支持内存清理。请前往设置 → 权限更新服务。",
+    "cleanFailed": "内存清理失败：{error}"
   },
   "disk": {
     "title": "磁盘 {index}",

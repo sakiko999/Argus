@@ -39,7 +39,8 @@
     "show": "Afficher Argus",
     "quit": "Quitter",
     "update": "Mise à jour vers {version}…",
-    "tooltip": "CPU {cpu} % Mémoire {memory} %"
+    "tooltip": "CPU {cpu} % Mémoire {memory} %",
+    "cleanMemory": "Nettoyer la mémoire"
   },
   "startup": {
     "managed": "Cette application n’autorise pas les modifications manuelles de cette tâche de démarrage.",

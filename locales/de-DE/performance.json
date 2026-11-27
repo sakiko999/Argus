@@ -307,7 +307,19 @@
     "formFactor": "Bauform",
     "onboard": "Onboard",
     "type": "Typ",
-    "reserved": "Für Hardware reserviert"
+    "reserved": "Für Hardware reserviert",
+    "clean": "Arbeitsspeicher bereinigen",
+    "cleaning": "Wird bereinigt…",
+    "cleanupRequiresService": "Privilegierter Dienst erforderlich",
+    "cleanupNoScope": "Kein Bereinigungsbereich ausgewählt. Wählen Sie mindestens eine Option in den Einstellungen.",
+    "cleanConfirmTitle": "Systemspeicher bereinigen",
+    "cleanConfirmBody": "Ausgewählte Speicherbereiche bereinigen: {items}.\n\nDas Leeren von Arbeitssätzen oder Caches kann kurzzeitig Seitenfehler oder Festplattenzugriffe verursachen. Fortfahren?",
+    "cleanDone": "Speicher bereinigt: verfügbar {before} → {after} ({freed} freigegeben)",
+    "cleanPartial": "Speicher teilweise bereinigt: verfügbar {before} → {after} ({freed} freigegeben); fehlgeschlagen: {failed}",
+    "cleanPrivilegeMissing": "Unzureichende Berechtigung (SeProfileSingleProcessPrivilege fehlt). Installieren oder aktualisieren Sie den privilegierten Dienst.",
+    "cleanTimedOut": "Zeitüberschreitung bei der Speicherbereinigung.",
+    "cleanServiceOutdated": "Der privilegierte Dienst ist veraltet. Bitte unter Einstellungen → Berechtigungen aktualisieren.",
+    "cleanFailed": "Speicherbereinigung fehlgeschlagen: {error}"
   },
   "disk": {
     "performanceUnavailable": "Festplattenleistungsindikatoren sind vorübergehend nicht verfügbar.",

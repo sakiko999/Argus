@@ -39,7 +39,8 @@
     "show": "Mostrar Argus",
     "quit": "Salir",
     "update": "Actualizar a {version}…",
-    "tooltip": "CPU {cpu} % Memoria {memory} %"
+    "tooltip": "CPU {cpu} % Memoria {memory} %",
+    "cleanMemory": "Limpiar memoria"
   },
   "startup": {
     "managed": "Esta aplicación no permite cambios manuales en esta tarea de inicio.",

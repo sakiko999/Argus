@@ -3,8 +3,8 @@
 use windows::Win32::Foundation::{HANDLE, LUID};
 use windows::Win32::Security::{
     AdjustTokenPrivileges, GetTokenInformation, LUID_AND_ATTRIBUTES, LookupPrivilegeValueW,
-    SE_DEBUG_NAME, SE_PRIVILEGE_ENABLED, TOKEN_ADJUST_PRIVILEGES, TOKEN_ELEVATION,
-    TOKEN_PRIVILEGES, TOKEN_QUERY, TokenElevation,
+    SE_DEBUG_NAME, SE_INCREASE_QUOTA_NAME, SE_PRIVILEGE_ENABLED, SE_PROF_SINGLE_PROCESS_NAME,
+    TOKEN_ADJUST_PRIVILEGES, TOKEN_ELEVATION, TOKEN_PRIVILEGES, TOKEN_QUERY, TokenElevation,
 };
 use windows::Win32::System::Threading::{
     GetCurrentProcess, HIGH_PRIORITY_CLASS, OpenProcessToken, SetPriorityClass,
@@ -39,6 +39,18 @@ pub fn is_elevated() -> bool {
 /// lets us open nearly every process. Returns whether it is now enabled.
 pub fn enable_debug_privilege() -> bool {
     enable_privilege(SE_DEBUG_NAME)
+}
+
+/// Enables `SeProfileSingleProcessPrivilege`, required by Windows for
+/// `NtSetSystemInformation(SystemMemoryListInformation, ...)`.
+pub fn enable_profile_single_process_privilege() -> bool {
+    enable_privilege(SE_PROF_SINGLE_PROCESS_NAME)
+}
+
+/// Enables `SeIncreaseQuotaPrivilege`, required by Windows for trimming the
+/// system file cache via `SystemFileCacheInformationEx`.
+pub fn enable_increase_quota_privilege() -> bool {
+    enable_privilege(SE_INCREASE_QUOTA_NAME)
 }
 
 fn enable_privilege(name: PCWSTR) -> bool {

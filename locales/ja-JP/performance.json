@@ -303,7 +303,19 @@
     "formFactor": "フォーム ファクター",
     "onboard": "オンボード",
     "type": "種類",
-    "reserved": "ハードウェア予約済み"
+    "reserved": "ハードウェア予約済み",
+    "clean": "メモリを解放",
+    "cleaning": "解放中…",
+    "cleanupRequiresService": "特権サービスのインストールが必要",
+    "cleanupNoScope": "解放対象が選択されていません。設定から 1 つ以上選択してください。",
+    "cleanConfirmTitle": "システムメモリを解放",
+    "cleanConfirmBody": "次のメモリ項目を解放します：{items}。\n\nワーキングセットやキャッシュの解放により、一時的なページフォールトやディスク読み込みが発生する場合があります。続行しますか？",
+    "cleanDone": "メモリを解放しました：利用可能 {before} → {after}（{freed} 解放）",
+    "cleanPartial": "一部メモリを解放しました：利用可能 {before} → {after}（{freed} 解放）；未実行：{failed}",
+    "cleanPrivilegeMissing": "権限が不足しています（SeProfileSingleProcessPrivilege）。特権サービスをインストールまたは更新してください。",
+    "cleanTimedOut": "メモリ解放がタイムアウトしました。",
+    "cleanServiceOutdated": "特権サービスが古いためメモリ解放に対応していません。設定 → 権限から更新してください。",
+    "cleanFailed": "メモリ解放に失敗しました：{error}"
   },
   "disk": {
     "performanceUnavailable": "ディスク パフォーマンス カウンターは一時的に利用できません。",
