@@ -1098,7 +1098,7 @@ pub fn set_memory_cleanup(
     let saved = app
         .state::<SettingsStore>()
         .update(|s| patch.apply(&mut s.memory_cleanup))
-        .map_err(|_| tr!("app.saveFailed"))?;
+        .map_err(|e| e.to_string())?;
     app.state::<AppState>()
         .sampler
         .send(Control::SetMemoryCleanup(saved.memory_cleanup.clone()));
