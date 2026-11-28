@@ -1,0 +1,88 @@
+# Periodically checks upstream Ray-lea/Argus for new stable release tags,
+# rebases this fork's commits onto the latest upstream tag so fork commits
+# always stay at HEAD, cleans up any conflicting fork tag/release, and
+# triggers Fork Release for the new version.
+name: Sync Upstream Tags
+
+on:
+  schedule:
+    - cron: "15 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      trigger_release:
+        description: Automatically trigger Fork Release after syncing
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync upstream tag & rebase fork commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+      - name: Check upstream tags and rebase fork commits onto latest tag
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+          TRIGGER_RELEASE: ${{ github.event_name == 'schedule' || inputs.trigger_release }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/Ray-lea/Argus.git
+          git fetch upstream --tags
+          git fetch origin main --tags
+
+          # Latest stable upstream SemVer tag (vX.Y.Z, excluding prereleases with '-')
+          UPSTREAM_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v '-' | head -n 1)
+          if [ -z "$UPSTREAM_TAG" ]; then
+            echo "No upstream release tag found."
+            exit 0
+          fi
+          UPSTREAM_COMMIT=$(git rev-list -n 1 "$UPSTREAM_TAG")
+          echo "Latest upstream tag: $UPSTREAM_TAG ($UPSTREAM_COMMIT)"
+
+          if git merge-base --is-ancestor "$UPSTREAM_COMMIT" origin/main; then
+            echo "origin/main already includes $UPSTREAM_TAG. Nothing to sync."
+            exit 0
+          fi
+
+          # Find the previous upstream base commit that origin/main was built on
+          OLD_BASE=$(git merge-base origin/main "$UPSTREAM_COMMIT")
+          echo "Previous upstream base: $OLD_BASE"
+
+          # Rebase fork-only commits (OLD_BASE..origin/main) cleanly onto UPSTREAM_COMMIT
+          # so fork commits always remain at HEAD.
+          git checkout -B main origin/main
+          git rebase --onto "$UPSTREAM_COMMIT" "$OLD_BASE" main
+
+          # If our fork already has a conflicting tag with the same name as UPSTREAM_TAG,
+          # delete the conflicting release & tag before pushing.
+          if git ls-remote --tags origin "refs/tags/$UPSTREAM_TAG" | grep -q .; then
+            echo "Conflicting fork tag $UPSTREAM_TAG detected; cleaning up..."
+            gh release delete "$UPSTREAM_TAG" -R "$GITHUB_REPOSITORY" --yes || true
+            git push origin ":refs/tags/$UPSTREAM_TAG"
+          fi
+
+          # Force-push rebased main (fork commits at HEAD)
+          git push --force-with-lease origin main
+          echo "Rebased main onto $UPSTREAM_TAG and pushed."
+
+          if [ "$TRIGGER_RELEASE" = "true" ]; then
+            VERSION="${UPSTREAM_TAG#v}"
+            echo "Triggering Fork Release for $VERSION..."
+            gh workflow run fork-release.yml -R "$GITHUB_REPOSITORY" --ref main -f version="$VERSION"
+          fi

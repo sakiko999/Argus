@@ -1,0 +1,161 @@
+# Builds unsigned Windows portable executables and signed NSIS installers (x64 & arm64),
+# and publishes a GitHub Release with SHA256SUMS.txt, latest.json, and beta.json
+# for both in-app auto-update and Scoop (sakiko999/scoop-overlay).
+name: Fork Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without leading 'v' (e.g. 0.7.0)
+        required: true
+        default: "0.7.0"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fork-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+            toolchain: stable-x86_64-pc-windows-msvc
+          - arch: arm64
+            runner: windows-11-arm
+            toolchain: stable-aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Install NSIS
+        run: ./scripts/install-nsis.ps1
+      - name: Install Rust
+        run: |
+          rustup toolchain install ${{ matrix.toolchain }} --profile minimal --no-self-update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup default ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: fork-release-${{ matrix.arch }}
+          cache-on-failure: true
+      - name: Build portable executable and NSIS installer
+        env:
+          ARGUS_BUILD_METADATA: ""
+        run: node scripts/build.mjs --installer --arch ${{ matrix.arch }}
+      - name: Stage and sign artifacts
+        env:
+          ARGUS_SIGNING_PRIVATE_KEY: ${{ secrets.FORK_SIGNING_PRIVATE_KEY }}
+          ARGUS_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Path staged -Force | Out-Null
+          $ver = "${{ inputs.version }}"
+          $arch = "${{ matrix.arch }}"
+          $portableName = "Argus_${ver}_${arch}.exe"
+          $setupName = "Argus_${ver}_${arch}-setup.exe"
+          $setupItem = Get-ChildItem "target/release/bundle/nsis/Argus_*_${arch}-setup.exe" | Select-Object -First 1
+          if (-not $setupItem) { throw "NSIS installer not found for $arch" }
+          Copy-Item -LiteralPath "target/release/argus.exe" -Destination (Join-Path "staged" $portableName)
+          $stagedSetup = Join-Path "staged" $setupName
+          Copy-Item -LiteralPath $setupItem.FullName -Destination $stagedSetup
+          if ($env:ARGUS_SIGNING_PRIVATE_KEY) {
+            cargo run --locked -p argus-update-signer -- $ver $stagedSetup
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            node scripts/release.mjs check-signature $ver $stagedSetup "$stagedSetup.sig"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fork-release-${{ matrix.arch }}
+          path: staged/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download artifacts, compute SHA256SUMS.txt, and build updater manifests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p assets
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n fork-release-x64 -D assets
+          gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -n fork-release-arm64 -D assets
+          (cd assets && sha256sum -- *.exe > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          python3 - << 'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          ver = os.environ["VERSION"]
+          repo = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
+          assets = Path("assets")
+          x64_sig = assets / f"Argus_{ver}_x64-setup.exe.sig"
+          arm64_sig = assets / f"Argus_{ver}_arm64-setup.exe.sig"
+          if x64_sig.exists() and arm64_sig.exists():
+              x64_asset = {
+                  "signature": x64_sig.read_text(encoding="utf-8").strip(),
+                  "url": f"{repo}/releases/download/v{ver}/Argus_{ver}_x64-setup.exe",
+              }
+              arm64_asset = {
+                  "signature": arm64_sig.read_text(encoding="utf-8").strip(),
+                  "url": f"{repo}/releases/download/v{ver}/Argus_{ver}_arm64-setup.exe",
+              }
+              manifest = {
+                  "version": ver,
+                  "notes": f"Argus v{ver} (personal fork with manual and automatic system memory cleanup).",
+                  "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                  "platforms": {
+                      "windows-x86_64-nsis": x64_asset,
+                      "windows-x86_64": x64_asset,
+                      "windows-aarch64-nsis": arm64_asset,
+                      "windows-aarch64": arm64_asset,
+                  },
+              }
+              text = json.dumps(manifest, indent=2) + "\n"
+              (assets / "latest.json").write_text(text, encoding="utf-8")
+              (assets / "beta.json").write_text(text, encoding="utf-8")
+              print("Generated latest.json and beta.json:")
+              print(text)
+          PY
+      - name: Create or replace GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ inputs.version }}"
+          # Remove any existing conflicting release/tag before creating fresh release on current HEAD
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$TAG" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          fi
+          gh release create "$TAG" -R "$GITHUB_REPOSITORY" assets/*.exe assets/SHA256SUMS.txt assets/latest.json assets/beta.json \
+            --target "$GITHUB_SHA" \
+            --title "Argus $TAG (memory-cleanup fork)" \
+            --notes "Personal fork build of Argus v${{ inputs.version }} with manual and automatic system memory cleanup (Issue #187). Includes portable executables, signed NSIS installers, SHA256SUMS.txt, and in-app updater manifests."
