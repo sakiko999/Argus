@@ -23,7 +23,7 @@ mod util;
 
 use argus_core::tr;
 
-pub use background::{NetworkClient, RuleRunner};
+pub use background::{MemoryCleanupRunner, NetworkClient, RuleRunner};
 pub use diagnostics::ServiceDiagnostics;
 pub use disk::DiskClient;
 pub use install::{Damage, ServiceStatus, manage, status};
@@ -55,7 +55,7 @@ const REMOVE_ARG: &str = "--argus-service-remove";
 /// installed service in the same elevation.
 const REFRESH_ARG: &str = "--argus-service-refresh";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const PROTOCOL: u32 = 12;
+const PROTOCOL: u32 = 13;
 
 /// Handle service/helper modes before starting the native UI, its singleton or sampler.
 pub fn run_mode() -> Option<i32> {
@@ -260,6 +260,22 @@ pub fn route(operation: Operation) -> Result<Routed, String> {
         return Ok(Routed::Absent);
     };
     match pipe::request(PIPE_NAME, pid, operation) {
+        Ok(reply) => Ok(Routed::Replied(Box::new(reply))),
+        Err(util::INCOMPATIBLE) => Ok(Routed::Outdated),
+        Err(e) => Err(util::message(e)),
+    }
+}
+
+/// Like `route`, with a custom IPC timeout for operations that may flush dirty
+/// pages or trim system caches.
+pub fn route_with_timeout(
+    operation: Operation,
+    timeout: std::time::Duration,
+) -> Result<Routed, String> {
+    let Some(pid) = install::running_pid().map_err(util::message)? else {
+        return Ok(Routed::Absent);
+    };
+    match pipe::request_with_timeout(PIPE_NAME, pid, operation, timeout) {
         Ok(reply) => Ok(Routed::Replied(Box::new(reply))),
         Err(util::INCOMPATIBLE) => Ok(Routed::Outdated),
         Err(e) => Err(util::message(e)),

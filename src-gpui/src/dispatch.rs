@@ -383,6 +383,19 @@ pub fn invoke(host: &Host, name: &str, args: Value) -> Result<Value, Value> {
         )
         .map(|value| serde_json::to_value(value).expect("serializable command response"))
         .map_err(|error| serde_json::to_value(error).unwrap_or(serde_json::Value::Null)),
+        "clean_memory" => crate::commands::clean_memory(
+            host.state(),
+            host.state(),
+            argument::<Option<u32>>(&args, "mask")?,
+        )
+        .map(|value| serde_json::to_value(value).expect("serializable command response"))
+        .map_err(|error| serde_json::to_value(error).unwrap_or(serde_json::Value::Null)),
+        "set_memory_cleanup" => crate::commands::set_memory_cleanup(
+            host.clone(),
+            argument::<crate::settings::MemoryCleanupPatch>(&args, "patch")?,
+        )
+        .map(|value| serde_json::to_value(value).expect("serializable command response"))
+        .map_err(|error| serde_json::to_value(error).unwrap_or(serde_json::Value::Null)),
         "set_history_options" => crate::commands::set_history_options(
             host.clone(),
             argument::<crate::settings::HistoryOptionsPatch>(&args, "options")?,

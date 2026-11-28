@@ -15,6 +15,7 @@ mod cards;
 mod data;
 mod hotkey;
 mod language;
+mod memory_cleanup;
 mod privilege;
 mod results;
 mod rules;
@@ -22,11 +23,12 @@ mod shortcuts;
 mod startup;
 mod update;
 
-pub(super) const SECTIONS: [&str; 8] = [
+pub(super) const SECTIONS: [&str; 9] = [
     "language",
     "startup",
     "hotkey",
     "privilege",
+    "memoryCleanup",
     "motion",
     "data",
     "rules",
@@ -38,6 +40,7 @@ fn section_icon(section: &str) -> &'static str {
         "startup" => "PowerIcon",
         "hotkey" => "KeyboardIcon",
         "privilege" => "ShieldIcon",
+        "memoryCleanup" => "MemoryIcon",
         "motion" => "SparkleIcon",
         "data" => "HistoryIcon",
         "rules" => "BoltIcon",
@@ -423,6 +426,7 @@ impl Desktop {
                     vec![acceleration],
                 ));
             }
+            "memoryCleanup" => self.memory_cleanup_cards(settings, &mut cards, window, cx),
             "data" => self.data_cards(settings, &mut cards, window, cx),
             "rules" => self.rule_cards(settings, &mut cards, window, cx),
             "update" => self.update_cards(settings, &mut cards, window, cx),

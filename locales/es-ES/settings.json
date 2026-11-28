@@ -7,7 +7,8 @@
     "motion": "Animaciones",
     "data": "Datos e historial",
     "rules": "Reglas",
-    "update": "Actualizaciones"
+    "update": "Actualizaciones",
+    "memoryCleanup": "Limpieza de memoria"
   },
   "toggle": {
     "on": "Activado",
@@ -208,7 +209,7 @@
     "incompatible": "Haga clic en «Actualizar servicio» para instalar la versión correspondiente a Argus y establecer la conexión.",
     "install": {
       "title": "¿Habilitar el servicio privilegiado?",
-      "body": "Tras instalar el servicio, la cuenta actual de Windows podrá realizar estas operaciones sin solicitar autorización de nuevo:\n· finalizar, suspender o reanudar procesos de cualquier usuario, excepto los críticos del sistema, y establecer su prioridad, prioridad de I/O, prioridad de memoria y modo de eficiencia;\n· iniciar, detener y eliminar cualquier servicio de Windows y cambiar su tipo de inicio, incluidos los servicios de software de seguridad y Windows Update;\n· cerrar cualquier conexión IPv4 TCP y consultar archivos en uso, tráfico de red y lecturas y escrituras de disco de todos los procesos;\n· consultar la identidad del disco, los atributos SMART y los registros de estado mediante comandos fijos de solo lectura;\n· leer datos de sensores de CPU y velocidades de ventiladores de la placa base mediante módulos fijos cuando PawnIO esté instalado.\n\nOtros programas con permisos estándar de esta cuenta también podrán realizar estas operaciones, lo que concede a la cuenta parte de los permisos de administrador. Instálelo únicamente en una cuenta de uso personal. El servicio se inicia con Windows. La instalación requiere autorización de administrador y el servicio puede desinstalarse después en Configuración.",
+      "body": "Tras instalar el servicio, la cuenta actual de Windows podrá realizar estas operaciones sin solicitar autorización de nuevo:\n· finalizar, suspender o reanudar procesos de cualquier usuario, excepto los críticos del sistema, y establecer su prioridad, prioridad de I/O, prioridad de memoria y modo de eficiencia;\n· iniciar, detener y eliminar cualquier servicio de Windows y cambiar su tipo de inicio, incluidos los servicios de software de seguridad y Windows Update;\n· cerrar cualquier conexión IPv4 TCP y consultar archivos en uso, tráfico de red y lecturas y escrituras de disco de todos los procesos;\n· consultar la identidad del disco, los atributos SMART y los registros de estado mediante comandos fijos de solo lectura;\n· leer datos de sensores de CPU y velocidades de ventiladores de la placa base mediante módulos fijos cuando PawnIO esté instalado.\n· limpiar memoria del sistema (conjuntos de trabajo, listas en espera/modificadas y caché de archivos);\n\nOtros programas con permisos estándar de esta cuenta también podrán realizar estas operaciones, lo que concede a la cuenta parte de los permisos de administrador. Instálelo únicamente en una cuenta de uso personal. El servicio se inicia con Windows. La instalación requiere autorización de administrador y el servicio puede desinstalarse después en Configuración.",
       "action": "Instalar y habilitar"
     },
     "uninstall": {
@@ -669,6 +670,59 @@
       "one": "Restablecer {count} programa omitido",
       "many": "Restablecer {count} programas omitidos",
       "other": "Restablecer {count} programas omitidos"
+    }
+  },
+  "memoryCleanup": {
+    "title": "Limpieza de memoria",
+    "desc": "Recupera memoria del sistema manualmente o automáticamente. Desactivado por defecto; requiere elevación o servicio privilegiado.",
+    "status": {
+      "ready": "Listo",
+      "needsPrivilege": "Requiere servicio privilegiado"
+    },
+    "goToPrivilege": "Ir a Configuración → Permisos",
+    "openSettings": "Abrir limpieza de memoria",
+    "cooldownNote": "La limpieza automática respeta un enfriamiento de {minutes} minutos entre ejecuciones.",
+    "interval": {
+      "title": "Limpiar por intervalo",
+      "desc": "Ejecuta limpieza periódicamente. Independiente del umbral de uso.",
+      "off": "Desactivado",
+      "m30": "Cada 30 min",
+      "h1": "Cada 1 hora",
+      "h3": "Cada 3 horas"
+    },
+    "threshold": {
+      "title": "Limpiar al superar uso de memoria",
+      "desc": "Activa la limpieza automática cuando la memoria usada alcance el porcentaje indicado (90 % recomendado).",
+      "off": "Desactivado",
+      "current": "Uso actual: {percent} ({available} disponible)"
+    },
+    "defer": {
+      "title": "Posponer si está ocupado o bloqueado",
+      "desc": "Pospone la limpieza automática durante aplicaciones en pantalla completa, juegos, arrastre o pantalla bloqueada."
+    },
+    "scope": {
+      "title": "Alcance de limpieza",
+      "desc": "Seleccione qué listas limpiar. La limpieza automática no toca la caché de archivos por defecto.",
+      "workingSets": {
+        "title": "Conjuntos de trabajo",
+        "desc": "Recorta páginas inactivas de procesos (MemoryEmptyWorkingSets)."
+      },
+      "standbyList": {
+        "title": "Lista de páginas en espera",
+        "desc": "Descarta caché de archivos reutilizable (MemoryPurgeStandbyList)."
+      },
+      "modifiedList": {
+        "title": "Lista de páginas modificadas",
+        "desc": "Escribe páginas sucias en disco primero (MemoryFlushModifiedList)."
+      },
+      "systemFileCache": {
+        "title": "Caché de archivos del sistema",
+        "desc": "Recorta la caché de archivos del sistema mediante SystemFileCacheInformationEx."
+      },
+      "autoCleanFileCache": {
+        "title": "Incluir listas en espera y modificadas en limpieza automática",
+        "desc": "Desactivado por defecto para que la limpieza automática no toque la caché de archivos."
+      }
     }
   }
 }

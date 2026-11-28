@@ -168,6 +168,7 @@ pub(in crate::frontend) struct Readings {
 enum Ask {
     Open,
     Update,
+    CleanMemory,
     Pause,
     Settings,
     Quit,
@@ -651,6 +652,7 @@ impl Flyout {
         cx.defer(move |cx| {
             let _ = handle.update(cx, |_, window, cx| {
                 let _ = desktop.update(cx, |desktop, cx| match ask {
+                    Ask::CleanMemory => desktop.trigger_memory_cleanup(window, cx),
                     Ask::Pause => desktop.act(Action::Pause, window, cx),
                     Ask::Settings => desktop.open_components("tray", window, cx),
                     Ask::Device(device) => desktop.act(Action::Device(device), window, cx),
@@ -1114,6 +1116,14 @@ impl Flyout {
                     .bg(p.layer)
                     .child(open)
                     .child(div().flex_1())
+                    .child(self.icon_button(
+                        "tray-clean-memory",
+                        "MemoryIcon",
+                        label("tray.cleanMemory"),
+                        Ask::CleanMemory,
+                        p,
+                        cx,
+                    ))
                     .child(self.icon_button(
                         "tray-pause",
                         pause_glyph,

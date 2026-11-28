@@ -37,7 +37,8 @@
     "show": "Argusを表示",
     "quit": "終了",
     "update": "{version} にアップデート…",
-    "tooltip": "CPU {cpu}% メモリ {memory}%"
+    "tooltip": "CPU {cpu}% メモリ {memory}%",
+    "cleanMemory": "メモリを解放"
   },
   "startup": {
     "managed": "このアプリでは、この起動タスクを手動で変更することはできません。",

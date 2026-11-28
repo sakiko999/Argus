@@ -311,7 +311,19 @@
     "formFactor": "Format",
     "onboard": "Intégrée",
     "type": "Type",
-    "reserved": "Réservée au matériel"
+    "reserved": "Réservée au matériel",
+    "clean": "Nettoyer la mémoire",
+    "cleaning": "Nettoyage…",
+    "cleanupRequiresService": "Service privilégié requis",
+    "cleanupNoScope": "Aucun élément sélectionné. Choisissez au moins une option dans les paramètres.",
+    "cleanConfirmTitle": "Nettoyer la mémoire système",
+    "cleanConfirmBody": "Nettoyer les éléments sélectionnés : {items}.\n\nCela peut provoquer de brefs défauts de page ou lectures disque. Continuer ?",
+    "cleanDone": "Mémoire nettoyée : disponible {before} → {after} ({freed} libérés)",
+    "cleanPartial": "Nettoyage partiel : disponible {before} → {after} ({freed} libérés) ; ignorés : {failed}",
+    "cleanPrivilegeMissing": "Privilèges insuffisants (SeProfileSingleProcessPrivilege manquant). Installez ou mettez à jour le service privilégié.",
+    "cleanTimedOut": "Le nettoyage de la mémoire a expiré.",
+    "cleanServiceOutdated": "Le service privilégié est obsolète. Mettez-le à jour dans Paramètres → Autorisations.",
+    "cleanFailed": "Échec du nettoyage mémoire : {error}"
   },
   "disk": {
     "performanceUnavailable": "Les compteurs de performances du disque sont temporairement indisponibles.",

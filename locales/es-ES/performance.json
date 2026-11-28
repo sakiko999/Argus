@@ -311,7 +311,19 @@
     "formFactor": "Factor de forma",
     "onboard": "Integrada",
     "type": "Tipo",
-    "reserved": "Reservada para hardware"
+    "reserved": "Reservada para hardware",
+    "clean": "Limpiar memoria",
+    "cleaning": "Limpiando…",
+    "cleanupRequiresService": "Requiere servicio privilegiado",
+    "cleanupNoScope": "No hay elementos de limpieza seleccionados. Elija al menos uno en Configuración.",
+    "cleanConfirmTitle": "Limpiar memoria del sistema",
+    "cleanConfirmBody": "Se limpiarán los siguientes elementos: {items}.\n\nRecortar conjuntos de trabajo o cachés puede provocar breves fallos de página o lecturas en disco. ¿Continuar?",
+    "cleanDone": "Memoria limpiada: disponible {before} → {after} ({freed} liberados)",
+    "cleanPartial": "Memoria limpiada parcialmente: disponible {before} → {after} ({freed} liberados); omitidos: {failed}",
+    "cleanPrivilegeMissing": "Privilegios insuficientes (falta SeProfileSingleProcessPrivilege). Instale o actualice el servicio privilegiado.",
+    "cleanTimedOut": "La limpieza de memoria agotó el tiempo de espera.",
+    "cleanServiceOutdated": "El servicio privilegiado está desactualizado. Actualícelo en Configuración → Permisos.",
+    "cleanFailed": "Error al limpiar memoria: {error}"
   },
   "disk": {
     "performanceUnavailable": "Los contadores de rendimiento del disco no están disponibles temporalmente.",

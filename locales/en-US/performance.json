@@ -307,7 +307,19 @@
     "formFactor": "Form factor",
     "onboard": "Onboard",
     "type": "Type",
-    "reserved": "Hardware reserved"
+    "reserved": "Hardware reserved",
+    "clean": "Clean memory",
+    "cleaning": "Cleaning…",
+    "cleanupRequiresService": "Privileged service required",
+    "cleanupNoScope": "No memory cleanup scope is selected. Choose at least one item in Settings.",
+    "cleanConfirmTitle": "Clean system memory",
+    "cleanConfirmBody": "Clean the selected memory targets: {items}.\n\nTrimming working sets or caches may cause brief page faults or disk reads. Continue?",
+    "cleanDone": "Memory cleaned: available {before} → {after} ({freed} freed)",
+    "cleanPartial": "Memory partially cleaned: available {before} → {after} ({freed} freed); skipped: {failed}",
+    "cleanPrivilegeMissing": "Insufficient privilege (SeProfileSingleProcessPrivilege missing). Install or update the privileged service.",
+    "cleanTimedOut": "Memory cleanup timed out; some work may still be finishing in the background.",
+    "cleanServiceOutdated": "The privileged service is outdated and does not support memory cleanup. Update it in Settings → Permissions.",
+    "cleanFailed": "Memory cleanup failed: {error}"
   },
   "disk": {
     "title": "Disk {index}",

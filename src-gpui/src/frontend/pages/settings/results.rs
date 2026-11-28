@@ -59,6 +59,9 @@ impl Desktop {
             "set_kernel_sensors" => {
                 self.ui.busy.remove("sensors");
             }
+            "clean_memory" => {
+                self.memory_cleanup_completed(value);
+            }
             "administrator_status" => {
                 self.ui.busy.remove("administratorStatus");
                 self.ui.errors.remove("administratorStatus");
@@ -140,6 +143,9 @@ impl Desktop {
     ) -> bool {
         let wrapped = |key: &str| argus_core::i18n::format(key, &[("error", &message)]);
         match command {
+            "clean_memory" => {
+                self.memory_cleanup_failed(error, message);
+            }
             "manage_privileged_service" => {
                 self.ui.busy.remove("privilege");
                 self.ui.errors.remove("privilegeAction");

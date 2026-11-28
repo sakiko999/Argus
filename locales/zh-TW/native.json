@@ -35,7 +35,8 @@
     "show": "顯示 Argus",
     "quit": "結束",
     "update": "更新至 {version}…",
-    "tooltip": "CPU {cpu}%  記憶體 {memory}%"
+    "tooltip": "CPU {cpu}%  記憶體 {memory}%",
+    "cleanMemory": "清理記憶體"
   },
   "startup": {
     "managed": "此應用程式不允許手動變更該啟動工作。",

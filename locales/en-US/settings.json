@@ -7,7 +7,8 @@
     "motion": "Animations",
     "data": "Data and history",
     "rules": "Rules",
-    "update": "Updates"
+    "update": "Updates",
+    "memoryCleanup": "Memory cleanup"
   },
   "toggle": {
     "on": "On",
@@ -208,7 +209,7 @@
     "incompatible": "Click Update service to install the version that matches Argus; Argus then connects to it.",
     "install": {
       "title": "Enable the privileged service?",
-      "body": "Once it's installed, the current Windows account can use the background service, without asking for permission again, to:\n· end, suspend or resume processes of any user (except critical system processes) and set their priority, I/O priority, memory priority and efficiency mode;\n· start, stop and delete any Windows service and change its startup type, including services of security software and Windows Update;\n· close any IPv4 TCP connection, and see every process's file locks, network traffic, and disk reads and writes;\n· query disk identity, SMART attributes, and health logs using fixed read-only commands;\n· read CPU sensor data and motherboard fan speeds through fixed modules when PawnIO is installed.\n\nOther programs running as a standard user under this account can use these operations too, which effectively gives the account some administrator rights. Install it only on an account that you use yourself. The service starts with Windows. Installing requires administrator permission; the service can be uninstalled in Settings later.",
+      "body": "Once it's installed, the current Windows account can use the background service, without asking for permission again, to:\n· end, suspend or resume processes of any user (except critical system processes) and set their priority, I/O priority, memory priority and efficiency mode;\n· start, stop and delete any Windows service and change its startup type, including services of security software and Windows Update;\n· close any IPv4 TCP connection, and see every process's file locks, network traffic, and disk reads and writes;\n· query disk identity, SMART attributes, and health logs using fixed read-only commands;\n· read CPU sensor data and motherboard fan speeds through fixed modules when PawnIO is installed.\n· clean system memory (trim process working sets, standby/modified page lists, and system file cache);\n\nOther programs running as a standard user under this account can use these operations too, which effectively gives the account some administrator rights. Install it only on an account that you use yourself. The service starts with Windows. Installing requires administrator permission; the service can be uninstalled in Settings later.",
       "action": "Install and enable"
     },
     "uninstall": {
@@ -662,6 +663,59 @@
     "restore": {
       "one": "Restore {count} ignored program",
       "other": "Restore {count} ignored programs"
+    }
+  },
+  "memoryCleanup": {
+    "title": "Memory cleanup",
+    "desc": "Reclaim system memory manually or automatically. Off by default; requires elevation or the privileged service.",
+    "status": {
+      "ready": "Ready",
+      "needsPrivilege": "Privileged service required"
+    },
+    "goToPrivilege": "Go to Settings → Permissions",
+    "openSettings": "Open memory cleanup settings",
+    "cooldownNote": "Automatic cleanup uses a {minutes}-minute cooldown to avoid repeated triggers; if both conditions match at once, it runs once.",
+    "interval": {
+      "title": "Clean on a schedule",
+      "desc": "Periodically reclaim system memory. Independent from the usage threshold and can run alongside it.",
+      "off": "Off",
+      "m30": "Every 30 min",
+      "h1": "Every 1 hour",
+      "h3": "Every 3 hours"
+    },
+    "threshold": {
+      "title": "Clean above memory usage",
+      "desc": "Automatically trigger when used memory reaches or exceeds the selected percentage (90% recommended).",
+      "off": "Off",
+      "current": "Current usage: {percent} ({available} available)"
+    },
+    "defer": {
+      "title": "Defer when busy or locked",
+      "desc": "Delay automatic cleanup during fullscreen apps, games, fullscreen video, pointer dragging, or lock screen until idle."
+    },
+    "scope": {
+      "title": "Cleanup scope",
+      "desc": "Choose which memory lists to trim. Automatic cleanup leaves file caches untouched by default.",
+      "workingSets": {
+        "title": "Process working sets",
+        "desc": "Move inactive pages out of working sets (MemoryEmptyWorkingSets); pages fault back in on demand."
+      },
+      "standbyList": {
+        "title": "Standby page list",
+        "desc": "Discard reusable file cache pages (MemoryPurgeStandbyList); subsequent file reads reload from disk."
+      },
+      "modifiedList": {
+        "title": "Modified page list",
+        "desc": "Flush dirty pages to disk first (MemoryFlushModifiedList); noticeable overhead when disk is busy."
+      },
+      "systemFileCache": {
+        "title": "System file cache",
+        "desc": "Trim the system file cache working set via SystemFileCacheInformationEx."
+      },
+      "autoCleanFileCache": {
+        "title": "Include standby & modified lists in auto cleanup",
+        "desc": "When off (default), automatic cleanup skips standby and modified lists so file caches stay warm."
+      }
     }
   }
 }

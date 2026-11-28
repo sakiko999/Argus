@@ -89,6 +89,8 @@ unsafe extern "system" fn main(_: u32, _: *mut PWSTR) {
         let _ = crate::taskmgr::reconcile(&dir);
         crate::security::allow_process_query(&owner)?;
         argus_core::privilege::enable_debug_privilege();
+        argus_core::privilege::enable_profile_single_process_privilege();
+        argus_core::privilege::enable_increase_quota_privilege();
         // ETW sessions survive crashes; this build owns only this service name.
         argus_core::net_process::stop_session(crate::network::SESSION);
         crate::pipe::serve(crate::PIPE_NAME, owner, stop, || {

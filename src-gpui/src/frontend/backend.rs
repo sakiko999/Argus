@@ -286,6 +286,7 @@ impl Desktop {
                 "argus-restored" => self.restored(&event.value, window, cx),
                 "argus-hotkey-changed" => self.hotkey_changed(window, cx),
                 "argus-show-update" => self.open_dialog("update", json!({}), window, cx),
+                "argus-clean-memory" => self.trigger_memory_cleanup(window, cx),
                 "argus-tray-panel" => {
                     self.tray_flyout(super::tray::Kind::Panel, &event.value, window, cx)
                 }

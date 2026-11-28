@@ -7,7 +7,8 @@
     "motion": "Animationen",
     "data": "Daten und Verlauf",
     "rules": "Regeln",
-    "update": "Updates"
+    "update": "Updates",
+    "memoryCleanup": "Speicherbereinigung"
   },
   "toggle": {
     "on": "Ein",
@@ -208,7 +209,7 @@
     "incompatible": "Klicken Sie auf „Dienst aktualisieren“, um die zu Argus passende Version zu installieren und die Verbindung herzustellen.",
     "install": {
       "title": "Privilegierten Dienst aktivieren?",
-      "body": "Nach der Installation kann das aktuelle Windows-Konto über den Hintergrunddienst ohne erneute Freigabe:\n· Prozesse beliebiger Benutzer beenden, anhalten oder fortsetzen, ausgenommen kritische Systemprozesse, sowie Priorität, I/O-Priorität, Speicherpriorität und Effizienzmodus festlegen;\n· beliebige Windows-Dienste starten, beenden und löschen und ihren Starttyp ändern, einschließlich Diensten von Sicherheitssoftware und Windows Update;\n· beliebige IPv4 TCP-Verbindungen schließen und Dateisperren, Netzwerkverkehr sowie Datenträger-Lese- und Schreibzugriffe aller Prozesse abfragen;\n· Datenträgeridentität, SMART-Attribute und Zustandsprotokolle über fest vorgegebene, ausschließlich lesende Befehle abfragen;\n· bei installiertem PawnIO CPU-Sensordaten und Mainboard-Lüfterdrehzahlen über fest vorgegebene Module auslesen.\n\nAndere Programme, die unter diesem Konto mit Standardrechten laufen, können diese Vorgänge ebenfalls aufrufen. Das Konto erhält damit einen Teil der Administratorrechte. Installieren Sie den Dienst nur für ein selbst genutztes Konto. Er startet mit Windows. Die Installation erfordert eine Administratorfreigabe; der Dienst kann später in den Einstellungen deinstalliert werden.",
+      "body": "Nach der Installation kann das aktuelle Windows-Konto über den Hintergrunddienst ohne erneute Freigabe:\n· Prozesse beliebiger Benutzer beenden, anhalten oder fortsetzen, ausgenommen kritische Systemprozesse, sowie Priorität, I/O-Priorität, Speicherpriorität und Effizienzmodus festlegen;\n· beliebige Windows-Dienste starten, beenden und löschen und ihren Starttyp ändern, einschließlich Diensten von Sicherheitssoftware und Windows Update;\n· beliebige IPv4 TCP-Verbindungen schließen und Dateisperren, Netzwerkverkehr sowie Datenträger-Lese- und Schreibzugriffe aller Prozesse abfragen;\n· Datenträgeridentität, SMART-Attribute und Zustandsprotokolle über fest vorgegebene, ausschließlich lesende Befehle abfragen;\n· bei installiertem PawnIO CPU-Sensordaten und Mainboard-Lüfterdrehzahlen über fest vorgegebene Module auslesen.\n· Systemspeicher bereinigen (Arbeitssätze, Standby-/Geänderte-Listen und Systemdateicache);\n\nAndere Programme, die unter diesem Konto mit Standardrechten laufen, können diese Vorgänge ebenfalls aufrufen. Das Konto erhält damit einen Teil der Administratorrechte. Installieren Sie den Dienst nur für ein selbst genutztes Konto. Er startet mit Windows. Die Installation erfordert eine Administratorfreigabe; der Dienst kann später in den Einstellungen deinstalliert werden.",
       "action": "Installieren und aktivieren"
     },
     "uninstall": {
@@ -662,6 +663,59 @@
     "restore": {
       "one": "{count} ignoriertes Programm wiederherstellen",
       "other": "{count} ignorierte Programme wiederherstellen"
+    }
+  },
+  "memoryCleanup": {
+    "title": "Speicherbereinigung",
+    "desc": "Systemspeicher manuell oder automatisch freigeben. Standardmäßig aus; erfordert Administratorrechte oder den privilegierten Dienst.",
+    "status": {
+      "ready": "Bereit",
+      "needsPrivilege": "Privilegierter Dienst erforderlich"
+    },
+    "goToPrivilege": "Zu Einstellungen → Berechtigungen",
+    "openSettings": "Speicherbereinigung öffnen",
+    "cooldownNote": "Automatische Bereinigungen haben eine Abklingzeit von {minutes} Minuten.",
+    "interval": {
+      "title": "Nach Zeitplan bereinigen",
+      "desc": "Speicher regelmäßig freigeben. Unabhängig vom Auslastungsschwellenwert.",
+      "off": "Aus",
+      "m30": "Alle 30 Min.",
+      "h1": "Jede Stunde",
+      "h3": "Alle 3 Std."
+    },
+    "threshold": {
+      "title": "Bei hoher Speicherauslastung bereinigen",
+      "desc": "Automatisch auslösen, wenn der belegte Speicher den Schwellenwert erreicht (90 % empfohlen).",
+      "off": "Aus",
+      "current": "Aktuelle Belegung: {percent} ({available} verfügbar)"
+    },
+    "defer": {
+      "title": "Bei Aktivität oder Sperrbildschirm verzögern",
+      "desc": "Automatische Bereinigung bei Vollbild-Apps, Spielen, Ziehen oder Sperrbildschirm verzögern."
+    },
+    "scope": {
+      "title": "Bereinigungsbereich",
+      "desc": "Auswählen, welche Speicherlisten geleert werden. Die automatische Bereinigung lässt Dateicaches standardmäßig unangetastet.",
+      "workingSets": {
+        "title": "Prozess-Arbeitssätze",
+        "desc": "Inaktive Seiten aus Arbeitssätzen entfernen (MemoryEmptyWorkingSets)."
+      },
+      "standbyList": {
+        "title": "Standby-Seitenliste",
+        "desc": "Wiederverwendbaren Dateicache verwerfen (MemoryPurgeStandbyList)."
+      },
+      "modifiedList": {
+        "title": "Geänderte Seitenliste",
+        "desc": "Geänderte Seiten auf die Festplatte schreiben (MemoryFlushModifiedList)."
+      },
+      "systemFileCache": {
+        "title": "Systemdateicache",
+        "desc": "Systemdateicache über SystemFileCacheInformationEx verkleinern."
+      },
+      "autoCleanFileCache": {
+        "title": "Standby- & geänderte Listen automatisch einbeziehen",
+        "desc": "Standardmäßig aus, damit die automatische Bereinigung den Dateicache nicht antastet."
+      }
     }
   }
 }

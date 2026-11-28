@@ -122,6 +122,10 @@ pub enum Operation {
         remote_address: String,
         remote_port: u16,
     },
+    /// System-wide memory cleanup; bitmask validated against `memory_cleanup::MASK_ALL`.
+    CleanMemory {
+        mask: u32,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -151,6 +155,7 @@ pub enum Reply {
     Sensors(Box<argus_core::hardware::CpuSensors>),
     Handles(argus_core::handles::HandleReport),
     Priority(Priority),
+    MemoryCleaned(argus_core::memory_cleanup::MemoryCleanupReport),
     Error(ActionError),
 }
 
@@ -220,6 +225,7 @@ impl Operation {
                     return Err(ActionError::Refused);
                 }
             }
+            Self::CleanMemory { mask } => argus_core::memory_cleanup::validate_mask(*mask)?,
             Self::Ping
             | Self::NetworkSnapshot
             | Self::SensorSnapshot {}
@@ -334,8 +340,61 @@ pub fn execute(operation: Operation, context: &Context, client_pid: u32) -> Repl
             remote_address,
             remote_port,
         } => connections::close_tcp(&local_address, local_port, &remote_address, remote_port),
+        Operation::CleanMemory { mask } => {
+            return execute_clean_memory(mask);
+        }
     };
     result.map_or_else(Reply::Error, |_| Reply::Done)
+}
+
+/// Serializes system-wide memory cleanup, enforces a minimum interval between
+/// requests, and bounds execution with a timeout so a slow flush cannot wedge
+/// the service pipe.
+fn execute_clean_memory(mask: u32) -> Reply {
+    use std::sync::{Mutex, mpsc};
+    use std::time::{Duration, Instant};
+
+    const MIN_INTERVAL: Duration = Duration::from_secs(3);
+    const TIMEOUT: Duration = Duration::from_secs(15);
+
+    static STATE: Mutex<Option<Instant>> = Mutex::new(None);
+    let Ok(mut last) = STATE.try_lock() else {
+        return Reply::Error(ActionError::Refused);
+    };
+    if last.is_some_and(|t| t.elapsed() < MIN_INTERVAL) {
+        return Reply::Error(ActionError::Refused);
+    }
+
+    let (tx, rx) = mpsc::channel();
+    if let Err(err) = std::thread::Builder::new()
+        .name("argus-memory-cleanup".into())
+        .spawn(move || {
+            let _ = tx.send(argus_core::memory_cleanup::clean(mask));
+        })
+    {
+        return Reply::Error(ActionError::Os(err.to_string()));
+    }
+
+    match rx.recv_timeout(TIMEOUT) {
+        Ok(Ok(report)) => {
+            *last = Some(Instant::now());
+            Reply::MemoryCleaned(report)
+        }
+        Ok(Err(err)) => Reply::Error(err),
+        Err(_) => {
+            *last = Some(Instant::now());
+            let avail = argus_core::memory_cleanup::available_memory_bytes();
+            Reply::MemoryCleaned(argus_core::memory_cleanup::MemoryCleanupReport {
+                mask,
+                available_before: avail,
+                available_after: avail,
+                freed_bytes: 0,
+                privilege_not_held: false,
+                timed_out: true,
+                items: Vec::new(),
+            })
+        }
+    }
 }
 
 #[cfg(test)]
@@ -711,5 +770,37 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn clean_memory_validates_mask_and_rejects_unknown_fields() {
+        use argus_core::memory_cleanup::{DEFAULT_MANUAL_MASK, MASK_ALL, MemoryCleanupReport};
+        assert!(Operation::CleanMemory { mask: 0 }.validate().is_err());
+        assert!(Operation::CleanMemory { mask: 1 << 4 }.validate().is_err());
+        assert!(
+            Operation::CleanMemory {
+                mask: DEFAULT_MANUAL_MASK
+            }
+            .validate()
+            .is_ok()
+        );
+        assert!(Operation::CleanMemory { mask: MASK_ALL }.validate().is_ok());
+        assert!(serde_json::from_str::<Operation>(r#"{"op":"cleanMemory","mask":3}"#).is_ok());
+        assert!(
+            serde_json::from_str::<Operation>(r#"{"op":"cleanMemory","mask":3,"pid":123}"#)
+                .is_err()
+        );
+        let reply = Reply::MemoryCleaned(MemoryCleanupReport {
+            mask: MASK_ALL,
+            available_before: 1000,
+            available_after: 2000,
+            freed_bytes: 1000,
+            privilege_not_held: false,
+            timed_out: false,
+            items: Vec::new(),
+        });
+        let bytes = serde_json::to_vec(&reply).unwrap();
+        assert!(bytes.len() < MAX_REPLY);
+        assert!(serde_json::from_slice::<Reply>(&bytes).is_ok());
     }
 }

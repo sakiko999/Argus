@@ -295,7 +295,19 @@
     "formFactor": "外形規格",
     "onboard": "主機板內建",
     "type": "類型",
-    "reserved": "為硬體保留"
+    "reserved": "為硬體保留",
+    "clean": "清理記憶體",
+    "cleaning": "清理中…",
+    "cleanupRequiresService": "需要安裝特權服務",
+    "cleanupNoScope": "尚未勾選任何記憶體清理範圍，請先在設定中選擇。",
+    "cleanConfirmTitle": "清理系統記憶體",
+    "cleanConfirmBody": "將依目前設定清理以下記憶體項目：{items}。\n\n清理工作集或快取可能造成短暫分頁錯誤或磁碟讀取增加，是否繼續？",
+    "cleanDone": "已清理記憶體：可用 {before} → {after}（釋放 {freed}）",
+    "cleanPartial": "已完成部分記憶體清理：可用 {before} → {after}（釋放 {freed}）；未執行：{failed}",
+    "cleanPrivilegeMissing": "權限不足（缺少 SeProfileSingleProcessPrivilege），已略過後續項目。請安裝或更新特權服務。",
+    "cleanTimedOut": "記憶體清理逾時，部分操作可能仍在背景執行。",
+    "cleanServiceOutdated": "特權服務版本過舊，不支援記憶體清理。請前往設定 → 權限更新服務。",
+    "cleanFailed": "記憶體清理失敗：{error}"
   },
   "disk": {
     "title": "磁碟 {index}",

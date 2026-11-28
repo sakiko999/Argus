@@ -3418,8 +3418,44 @@ impl Desktop {
                 plain(units.figure(reserved, MEGA, 0)),
             ));
         }
+        use crate::frontend::widgets::{ButtonExt, Tone};
+        let cleanup_busy = self.memory_cleanup_busy();
+        let privileged = self.privileged();
+        let clean_button = if !privileged {
+            self.btn(
+                "memory-clean-needs-privilege",
+                label("performance.memory.cleanupRequiresService"),
+                Some("ShieldIcon"),
+                Tone::Plain,
+            )
+            .on_click(cx.listener(|this, _, window, cx| {
+                this.locate_setting("privilege", "privilegedService", window, cx);
+            }))
+            .into_any_element()
+        } else {
+            self.btn(
+                "memory-clean",
+                if cleanup_busy {
+                    label("performance.memory.cleaning")
+                } else {
+                    label("performance.memory.clean")
+                },
+                Some("MemoryIcon"),
+                Tone::Plain,
+            )
+            .inert(cleanup_busy)
+            .on_click(cx.listener(|this, _, window, cx| {
+                this.trigger_memory_cleanup(window, cx);
+            }))
+            .into_any_element()
+        };
         vec![
-            self.perf_head(label("common.resource.memory"), Some(model), None, cx),
+            self.perf_head(
+                label("common.resource.memory"),
+                Some(model),
+                Some(clean_button),
+                cx,
+            ),
             self.chart_view(
                 "memory-usage",
                 &[Line::new("system.memUsed", p.memory)],

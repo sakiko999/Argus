@@ -8,11 +8,12 @@ use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
 use crate::channel::Channel;
+use crate::settings::MemoryCleanupSettings;
 use argus_core::history::{self, HistoryRecorder};
 use argus_core::power::PowerTracker;
 use argus_core::watch::{SeriesQuery, WatchAction, WatchError, WatchRecorder, WatchView};
 use argus_core::{Collector, Snapshot};
-use argus_service::{DiskClient, NetworkClient, RuleRunner, SensorClient};
+use argus_service::{DiskClient, MemoryCleanupRunner, NetworkClient, RuleRunner, SensorClient};
 
 /// Shortest window over which CPU percentages are still meaningful.
 const MIN_SAMPLE_GAP: Duration = Duration::from_millis(250);
@@ -94,6 +95,86 @@ pub enum Control {
         SeriesQuery,
         Sender<Result<history::HistorySeries, WatchError>>,
     ),
+    /// Updates automatic memory cleanup settings on the sampling thread.
+    SetMemoryCleanup(MemoryCleanupSettings),
+    /// Records that a manual memory cleanup ran now, resetting cooldown & interval timers.
+    MemoryCleanupCompleted,
+}
+
+struct AutoCleanupScheduler {
+    settings: MemoryCleanupSettings,
+    started_at: Instant,
+    last_run: Option<Instant>,
+    deferred: bool,
+}
+
+impl AutoCleanupScheduler {
+    fn new(now: Instant) -> Self {
+        Self {
+            settings: MemoryCleanupSettings::default(),
+            started_at: now,
+            last_run: None,
+            deferred: false,
+        }
+    }
+
+    fn configure(&mut self, settings: MemoryCleanupSettings, now: Instant) {
+        if self.settings.interval_minutes == 0 && settings.interval_minutes > 0 {
+            self.started_at = now;
+        }
+        self.settings = settings;
+        if self.settings.interval_minutes == 0 && self.settings.threshold_percent == 0 {
+            self.deferred = false;
+        }
+    }
+
+    fn note_ran(&mut self, now: Instant) {
+        self.last_run = Some(now);
+        self.deferred = false;
+    }
+
+    fn check(&mut self, now: Instant, mem_used: u64, mem_total: u64) -> Option<u32> {
+        let mask = self.settings.auto_mask();
+        if mask == 0
+            || (self.settings.interval_minutes == 0 && self.settings.threshold_percent == 0)
+        {
+            self.deferred = false;
+            return None;
+        }
+
+        let cooldown = Duration::from_secs(u64::from(self.settings.cooldown_minutes.max(1)) * 60);
+        if self
+            .last_run
+            .is_some_and(|last| now.saturating_duration_since(last) < cooldown)
+        {
+            return None;
+        }
+
+        let interval_due = self.settings.interval_minutes > 0 && {
+            let interval = Duration::from_secs(u64::from(self.settings.interval_minutes) * 60);
+            let anchor = self.last_run.unwrap_or(self.started_at);
+            now.saturating_duration_since(anchor) >= interval
+        };
+
+        let threshold_due = self.settings.threshold_percent > 0 && mem_total > 0 && {
+            let pct = (mem_used as f64 / mem_total as f64) * 100.0;
+            pct >= f64::from(self.settings.threshold_percent)
+        };
+
+        if !self.deferred && !interval_due && !threshold_due {
+            return None;
+        }
+
+        if self.settings.defer_when_busy && argus_core::memory_cleanup::should_defer_auto_cleanup()
+        {
+            self.deferred = true;
+            return None;
+        }
+
+        self.last_run = Some(now);
+        self.deferred = false;
+        Some(mask)
+    }
 }
 
 fn maintenance_due(previous: Option<(i64, Instant)>, day: i64, now: Instant) -> bool {
@@ -349,6 +430,9 @@ impl Sampler {
                 let mut tray = BACKGROUND_INTERVAL;
                 let mut paused = false;
                 let mut schedule = Schedule::new(Instant::now(), interval);
+                let mut auto_cleanup = AutoCleanupScheduler::new(Instant::now());
+                let cleanup_runner =
+                    MemoryCleanupRunner::spawn(argus_core::privilege::is_elevated());
                 // Both immediately sampled and deferred actions need an
                 // accepted post-action process query before their refresh ends.
                 let mut owed = None;
@@ -499,6 +583,14 @@ impl Sampler {
                             let _ = reply.send(result);
                             continue;
                         }
+                        Ok(Control::SetMemoryCleanup(settings)) => {
+                            auto_cleanup.configure(settings, Instant::now());
+                            continue;
+                        }
+                        Ok(Control::MemoryCleanupCompleted) => {
+                            auto_cleanup.note_ran(Instant::now());
+                            continue;
+                        }
                         Err(RecvTimeoutError::Timeout) => false,
                         Err(RecvTimeoutError::Disconnected) => return,
                     };
@@ -531,6 +623,11 @@ impl Sampler {
                     let logical_cpus = snapshot.system.logical_cpus;
                     power.apply(&mut snapshot.processes, logical_cpus, Instant::now());
                     rules.observe(&snapshot.processes);
+                    if let Some(mask) =
+                        auto_cleanup.check(now, snapshot.system.mem_used, snapshot.system.mem_total)
+                    {
+                        cleanup_runner.trigger(mask);
+                    }
                     if let Some(recorder) = &mut history {
                         recorder.record(&snapshot);
                     }

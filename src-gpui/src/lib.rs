@@ -312,6 +312,9 @@ pub fn run() -> anyhow::Result<()> {
     }
     if !options.test {
         state.rules.set_rules(saved.rules.clone());
+        state
+            .sampler
+            .send(Control::SetMemoryCleanup(saved.memory_cleanup.clone()));
         if platform::KERNEL_SENSORS_SUPPORTED {
             state
                 .sampler

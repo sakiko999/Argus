@@ -208,6 +208,7 @@ fn privileged<T>(
             ("set packaged service start type in registry", operation)
         }
         Operation::CloseConnection { .. } => ("close TCP connection", operation),
+        Operation::CleanMemory { .. } => ("clean system memory", operation),
         _ => ("privileged operation", operation),
     };
     // A service change tells a denial with administrator rights in hand from
@@ -1029,6 +1030,78 @@ pub fn set_history_enabled(
     state.sampler.send(Control::SetHistoryDir(
         (enabled && dir.recording_allowed).then(|| path.clone()),
     ));
+    Ok(settings_view(&app))
+}
+
+pub fn clean_memory(
+    state: State<'_, AppState>,
+    settings: State<'_, SettingsStore>,
+    mask: Option<u32>,
+) -> Result<argus_core::memory_cleanup::MemoryCleanupReport, ActionError> {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static RUNNING: AtomicBool = AtomicBool::new(false);
+
+    let effective_mask = mask.unwrap_or_else(|| settings.get().memory_cleanup.manual_mask());
+    argus_core::memory_cleanup::validate_mask(effective_mask)?;
+
+    if RUNNING.swap(true, Ordering::AcqRel) {
+        return Err(ActionError::Refused);
+    }
+    struct Guard;
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            RUNNING.store(false, Ordering::Release);
+        }
+    }
+    let _guard = Guard;
+
+    let result = if state.elevated {
+        action_result(
+            "clean system memory",
+            "local elevated",
+            argus_core::memory_cleanup::clean(effective_mask),
+        )
+    } else {
+        let routed = argus_service::route_with_timeout(
+            Operation::CleanMemory {
+                mask: effective_mask,
+            },
+            Duration::from_secs(20),
+        )
+        .map_err(ActionError::Os);
+        let routed = action_result("clean system memory", "service routing", routed)?;
+        match routed {
+            Routed::Absent => Err(ActionError::AccessDenied),
+            Routed::Outdated => Err(ActionError::ServiceOutdated),
+            Routed::Replied(reply) => match *reply {
+                Reply::MemoryCleaned(report) => Ok(report),
+                Reply::Error(err) => Err(err),
+                _ => Err(ActionError::ServiceOutdated),
+            },
+        }
+    };
+
+    if result.is_ok() {
+        state.sampler.send(Control::MemoryCleanupCompleted);
+        state.sampler.send(Control::Refresh);
+    }
+    result
+}
+
+pub fn set_memory_cleanup(
+    app: crate::native_runtime::Host,
+    patch: crate::settings::MemoryCleanupPatch,
+) -> Result<SettingsView, String> {
+    if !patch.valid() {
+        return Err(tr!("app.invalidRequest"));
+    }
+    let saved = app
+        .state::<SettingsStore>()
+        .update(|s| patch.apply(&mut s.memory_cleanup))
+        .map_err(|e| e.to_string())?;
+    app.state::<AppState>()
+        .sampler
+        .send(Control::SetMemoryCleanup(saved.memory_cleanup.clone()));
     Ok(settings_view(&app))
 }
 

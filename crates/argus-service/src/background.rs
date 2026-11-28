@@ -412,6 +412,81 @@ impl NetworkClient {
     }
 }
 
+#[derive(Default)]
+struct CleanupControl {
+    pending: Option<u32>,
+    stop: bool,
+}
+
+/// Host-side background worker for automatic memory cleanup, keeping at most
+/// one pending mask while a cleanup call is in flight so the sampling thread
+/// never waits on IPC or kernel memory locks.
+pub struct MemoryCleanupRunner {
+    shared: Arc<(Mutex<CleanupControl>, Condvar)>,
+    thread: Option<JoinHandle<()>>,
+}
+
+impl MemoryCleanupRunner {
+    pub fn spawn(elevated: bool) -> Self {
+        let shared: Arc<(Mutex<CleanupControl>, Condvar)> = Arc::default();
+        let state = shared.clone();
+        let thread = std::thread::Builder::new()
+            .name("argus-memory-cleanup-client".into())
+            .spawn(move || {
+                loop {
+                    let mask = {
+                        let mut control = state.0.lock().unwrap();
+                        while !control.stop && control.pending.is_none() {
+                            control = state.1.wait(control).unwrap();
+                        }
+                        if control.stop {
+                            return;
+                        }
+                        match control.pending.take() {
+                            Some(mask) => mask,
+                            None => continue,
+                        }
+                    };
+                    if elevated {
+                        let _ = argus_core::memory_cleanup::clean(mask);
+                    } else {
+                        let _ = crate::route_with_timeout(
+                            Operation::CleanMemory { mask },
+                            Duration::from_secs(20),
+                        );
+                    }
+                }
+            })
+            .expect("spawn memory cleanup worker");
+        Self {
+            shared,
+            thread: Some(thread),
+        }
+    }
+
+    pub fn trigger(&self, mask: u32) {
+        if mask == 0 {
+            return;
+        }
+        let mut control = self.shared.0.lock().unwrap();
+        control.pending = Some(mask);
+        self.shared.1.notify_one();
+    }
+}
+
+impl Drop for MemoryCleanupRunner {
+    fn drop(&mut self) {
+        {
+            let mut control = self.shared.0.lock().unwrap();
+            control.stop = true;
+            self.shared.1.notify_one();
+        }
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
 impl Drop for NetworkClient {
     fn drop(&mut self) {
         self.tx = None;

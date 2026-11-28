@@ -612,6 +612,148 @@ pub enum UpdateRoute {
     Proxy,
 }
 
+/// Offered auto-cleanup intervals in minutes (0 = off).
+pub const MEMORY_CLEANUP_INTERVALS: [u32; 4] = [0, 30, 60, 180];
+/// Offered memory usage thresholds in percent (0 = off).
+pub const MEMORY_CLEANUP_THRESHOLDS: [u8; 4] = [0, 85, 90, 95];
+pub const DEFAULT_MEMORY_CLEANUP_COOLDOWN_MINUTES: u32 = 10;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MemoryCleanupSettings {
+    /// Automatic cleanup interval in minutes: 0 (off), 30, 60, or 180.
+    pub interval_minutes: u32,
+    /// Automatic cleanup trigger when used memory >= threshold %: 0 (off), 85, 90, or 95.
+    pub threshold_percent: u8,
+    /// Minimum cooldown in minutes between automatic cleanups (default 10).
+    pub cooldown_minutes: u32,
+    /// Trim process working sets (`MemoryEmptyWorkingSets`).
+    pub working_sets: bool,
+    /// Purge standby page list (`MemoryPurgeStandbyList`).
+    pub standby_list: bool,
+    /// Flush modified page list (`MemoryFlushModifiedList`).
+    pub modified_list: bool,
+    /// Trim system file cache (`SystemFileCacheInformationEx`).
+    pub system_file_cache: bool,
+    /// Whether automatic cleanup may also purge standby / modified page lists.
+    /// Defaults to false so automatic cleanup does not touch file caches.
+    pub auto_clean_file_cache: bool,
+    /// Defer automatic cleanup while fullscreen apps, games, dragging, or lock screen are active.
+    pub defer_when_busy: bool,
+}
+
+impl Default for MemoryCleanupSettings {
+    fn default() -> Self {
+        Self {
+            interval_minutes: 0,
+            threshold_percent: 0,
+            cooldown_minutes: DEFAULT_MEMORY_CLEANUP_COOLDOWN_MINUTES,
+            working_sets: true,
+            standby_list: true,
+            modified_list: false,
+            system_file_cache: false,
+            auto_clean_file_cache: false,
+            defer_when_busy: true,
+        }
+    }
+}
+
+impl MemoryCleanupSettings {
+    pub fn manual_mask(&self) -> u32 {
+        use argus_core::memory_cleanup::*;
+        let mut mask = 0;
+        if self.working_sets {
+            mask |= MASK_WORKING_SETS;
+        }
+        if self.standby_list {
+            mask |= MASK_STANDBY_LIST;
+        }
+        if self.modified_list {
+            mask |= MASK_MODIFIED_LIST;
+        }
+        if self.system_file_cache {
+            mask |= MASK_SYSTEM_FILE_CACHE;
+        }
+        mask
+    }
+
+    pub fn auto_mask(&self) -> u32 {
+        argus_core::memory_cleanup::effective_auto_mask(
+            self.manual_mask(),
+            self.auto_clean_file_cache,
+        )
+    }
+
+    pub fn normalize(&mut self) {
+        if !MEMORY_CLEANUP_INTERVALS.contains(&self.interval_minutes) {
+            self.interval_minutes = 0;
+        }
+        if !MEMORY_CLEANUP_THRESHOLDS.contains(&self.threshold_percent) {
+            self.threshold_percent = 0;
+        }
+        if self.cooldown_minutes == 0 || self.cooldown_minutes > 1440 {
+            self.cooldown_minutes = DEFAULT_MEMORY_CLEANUP_COOLDOWN_MINUTES;
+        }
+    }
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+pub struct MemoryCleanupPatch {
+    pub interval_minutes: Option<u32>,
+    pub threshold_percent: Option<u8>,
+    pub cooldown_minutes: Option<u32>,
+    pub working_sets: Option<bool>,
+    pub standby_list: Option<bool>,
+    pub modified_list: Option<bool>,
+    pub system_file_cache: Option<bool>,
+    pub auto_clean_file_cache: Option<bool>,
+    pub defer_when_busy: Option<bool>,
+}
+
+impl MemoryCleanupPatch {
+    pub fn valid(&self) -> bool {
+        self.interval_minutes
+            .is_none_or(|v| MEMORY_CLEANUP_INTERVALS.contains(&v))
+            && self
+                .threshold_percent
+                .is_none_or(|v| MEMORY_CLEANUP_THRESHOLDS.contains(&v))
+            && self
+                .cooldown_minutes
+                .is_none_or(|v| (1..=1440).contains(&v))
+    }
+
+    pub fn apply(self, target: &mut MemoryCleanupSettings) {
+        if let Some(v) = self.interval_minutes {
+            target.interval_minutes = v;
+        }
+        if let Some(v) = self.threshold_percent {
+            target.threshold_percent = v;
+        }
+        if let Some(v) = self.cooldown_minutes {
+            target.cooldown_minutes = v;
+        }
+        if let Some(v) = self.working_sets {
+            target.working_sets = v;
+        }
+        if let Some(v) = self.standby_list {
+            target.standby_list = v;
+        }
+        if let Some(v) = self.modified_list {
+            target.modified_list = v;
+        }
+        if let Some(v) = self.system_file_cache {
+            target.system_file_cache = v;
+        }
+        if let Some(v) = self.auto_clean_file_cache {
+            target.auto_clean_file_cache = v;
+        }
+        if let Some(v) = self.defer_when_busy {
+            target.defer_when_busy = v;
+        }
+    }
+}
+
 /// Groups of settings in it (the monitors, what history records) are saved
 /// without their defaults too: their structs read a missing field as its
 /// default (`#[serde(default)]`).
@@ -680,6 +822,9 @@ pub struct Settings {
     /// Draw the interface with the graphics card; off, the system's software
     /// rasterizer draws it on the processor.
     pub hardware_acceleration: bool,
+    /// Optional manual & automatic system memory cleanup configuration.
+    #[serde(deserialize_with = "lenient_monitor")]
+    pub memory_cleanup: MemoryCleanupSettings,
 }
 
 impl Default for Settings {
@@ -715,6 +860,7 @@ impl Default for Settings {
             update_proxy: crate::config::PROXY_PRESETS[0].into(),
             whats_new: true,
             hardware_acceleration: true,
+            memory_cleanup: MemoryCleanupSettings::default(),
         }
     }
 }
@@ -846,6 +992,7 @@ impl Settings {
         if !MONITOR_OPACITIES.contains(&self.desktop_monitor.opacity) {
             self.desktop_monitor.opacity = 100;
         }
+        self.memory_cleanup.normalize();
     }
 
     /// The sampler's cadences while minimized and while in the tray.

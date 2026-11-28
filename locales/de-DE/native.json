@@ -38,7 +38,8 @@
     "show": "Argus anzeigen",
     "quit": "Beenden",
     "update": "Update auf {version}…",
-    "tooltip": "CPU {cpu} % Speicher {memory} %"
+    "tooltip": "CPU {cpu} % Speicher {memory} %",
+    "cleanMemory": "Arbeitsspeicher bereinigen"
   },
   "startup": {
     "managed": "Diese App erlaubt keine manuellen Änderungen an dieser Startaufgabe.",
