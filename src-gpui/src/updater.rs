@@ -417,6 +417,7 @@ pub fn reset(app: &Host) {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum ReleaseSource {
     GitHub,
+    #[cfg_attr(not(test), allow(dead_code))]
     Official,
     Proxy(String),
 }
