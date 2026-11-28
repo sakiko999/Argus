@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [windows-latest, windows-2022]
+        runner: [windows-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     permissions:
@@ -179,8 +179,6 @@ jobs:
       matrix:
         include:
           - runner: windows-latest
-            toolchain: stable-x86_64-pc-windows-msvc
-          - runner: windows-2022
             toolchain: stable-x86_64-pc-windows-msvc
           - runner: windows-11-arm
             toolchain: stable-aarch64-pc-windows-msvc
@@ -246,7 +244,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [windows-latest, windows-2022]
+        runner: [windows-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 150
     defaults:

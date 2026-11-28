@@ -1,14 +1,15 @@
-# Builds unsigned standalone Windows executables (x64 & arm64) and publishes a
-# GitHub Release with SHA256SUMS.txt for Scoop (sakiko999/scoop-overlay).
+# Builds unsigned Windows portable executables and NSIS installers (x64 & arm64)
+# and publishes a GitHub Release with SHA256SUMS.txt for Scoop (sakiko999/scoop-overlay)
+# and Nightly upgrade smoke tests.
 name: Fork Release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version without leading 'v' (e.g. 0.6.0.1)
+        description: Release version without leading 'v' (e.g. 0.6.0.2)
         required: true
-        default: "0.6.0.1"
+        default: "0.6.0.2"
         type: string
       from_run_id:
         description: Optional existing workflow run ID to publish artifacts from without rebuilding
@@ -53,6 +54,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
+      - name: Install NSIS
+        run: ./scripts/install-nsis.ps1
       - name: Install Rust
         run: |
           rustup toolchain install ${{ matrix.toolchain }} --profile minimal --no-self-update
@@ -62,16 +65,20 @@ jobs:
         with:
           shared-key: fork-release-${{ matrix.arch }}
           cache-on-failure: true
-      - name: Build portable executable
+      - name: Build portable executable and NSIS installer
         env:
           ARGUS_BUILD_METADATA: ""
-        run: node scripts/build.mjs --arch ${{ matrix.arch }}
-      - name: Stage artifact
+        run: node scripts/build.mjs --installer --arch ${{ matrix.arch }}
+      - name: Stage artifacts
         run: |
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Path staged -Force | Out-Null
-          $name = "Argus_${{ inputs.version }}_${{ matrix.arch }}.exe"
-          Copy-Item -LiteralPath "target/release/argus.exe" -Destination (Join-Path "staged" $name)
+          $portableName = "Argus_${{ inputs.version }}_${{ matrix.arch }}.exe"
+          $setupName = "Argus_${{ inputs.version }}_${{ matrix.arch }}-setup.exe"
+          $setupItem = Get-ChildItem "target/release/bundle/nsis/Argus_*_${{ matrix.arch }}-setup.exe" | Select-Object -First 1
+          if (-not $setupItem) { throw "NSIS installer not found for ${{ matrix.arch }}" }
+          Copy-Item -LiteralPath "target/release/argus.exe" -Destination (Join-Path "staged" $portableName)
+          Copy-Item -LiteralPath $setupItem.FullName -Destination (Join-Path "staged" $setupName)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: fork-release-${{ matrix.arch }}
@@ -109,5 +116,5 @@ jobs:
             gh release create "$TAG" -R "$GITHUB_REPOSITORY" assets/* \
               --target "$GITHUB_SHA" \
               --title "Argus $TAG (memory-cleanup fork)" \
-              --notes "Personal fork build of Argus with manual and automatic system memory cleanup (Issue #187)."
+              --notes "Personal fork build of Argus with manual and automatic system memory cleanup (Issue #187). Includes portable executables and NSIS installers for x64 and arm64."
           fi
