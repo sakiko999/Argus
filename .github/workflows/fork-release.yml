@@ -66,7 +66,7 @@ jobs:
       - name: Stage and sign artifacts
         env:
           ARGUS_SIGNING_PRIVATE_KEY: ${{ secrets.FORK_SIGNING_PRIVATE_KEY }}
-          ARGUS_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          ARGUS_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.FORK_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Path staged -Force | Out-Null
