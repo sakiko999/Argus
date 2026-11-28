@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use crate::settings::{SettingsStore, UpdateChannel, UpdateRoute};
 
 /// The upstream repository and its official release distribution hosts.
-pub(crate) const REPO: &str = "https://github.com/Ray-lea/Argus";
+pub(crate) const REPO: &str = "https://github.com/sakiko999/Argus";
 const OFFICIAL_FEEDS: &str = "https://update.argustask.com";
 const OFFICIAL_DOWNLOADS: &str = "https://dl.argustask.com";
 /// Public GitHub proxies that served release downloads byte for byte when
@@ -475,11 +475,7 @@ fn sources(route: UpdateRoute, proxy: &str) -> Vec<ReleaseSource> {
         UpdateRoute::Direct => vec![ReleaseSource::GitHub],
         UpdateRoute::Proxy => vec![ReleaseSource::Proxy(proxy.into())],
         UpdateRoute::Auto => {
-            let mut all = vec![
-                ReleaseSource::GitHub,
-                ReleaseSource::Official,
-                ReleaseSource::Proxy(proxy.into()),
-            ];
+            let mut all = vec![ReleaseSource::GitHub, ReleaseSource::Proxy(proxy.into())];
             all.extend(
                 PROXY_PRESETS
                     .into_iter()
@@ -1349,9 +1345,8 @@ mod tests {
         );
         let auto = sources(UpdateRoute::Auto, PROXY_PRESETS[1]);
         assert_eq!(auto[0], ReleaseSource::GitHub);
-        assert_eq!(auto[1], ReleaseSource::Official);
-        assert_eq!(auto[2], ReleaseSource::Proxy(PROXY_PRESETS[1].into()));
-        assert_eq!(auto.len(), 2 + PROXY_PRESETS.len());
+        assert_eq!(auto[1], ReleaseSource::Proxy(PROXY_PRESETS[1].into()));
+        assert_eq!(auto.len(), 1 + PROXY_PRESETS.len());
     }
 
     #[test]
